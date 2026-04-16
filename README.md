@@ -4,6 +4,8 @@
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![Architecture](https://img.shields.io/badge/Architecture-MERN%20%2B%20Redis%20%2B%20Nginx-blue)
 
+🚀 **Live Deployment:** [https://renewed-amazement-production-ca93.up.railway.app](https://renewed-amazement-production-ca93.up.railway.app)
+
 A production-grade, horizontally scalable task management web application built to fulfill the PrimeTrade.ai Backend Developer (Intern) assignment. The solution features a robust architecture utilizing a Node.js/Express backend running behind an Nginx load balancer natively scaled across 5 instances, a Redis cache layer for high performance and rate limiting, a strict MongoDB Atlas integration, and a glass-morphic React/Vite front-end.
 
 ## 🌟 Key Features
