@@ -1,0 +1,223 @@
+###############################################################
+# Docker Compose – Full MERN Stack with Load Balancing
+#
+# Services:
+#   redis          – shared cache + rate limit store
+#   backend_1..5   – Express API (ports 8000-8004)
+#   nginx          – load balancer (port 80)
+#   frontend       – Vite React SPA (port 3000, internal)
+#
+# Usage:
+#   cp backend/.env.example backend/.env   # fill in MONGO_URI + JWT_SECRET
+#   docker compose up -d --build
+#   open http://localhost
+###############################################################
+
+services:
+
+  # ── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: primetrade_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Instance 1 ────────────────────────────────────
+  backend_1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: primetrade_backend_1
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Backend Instance 2 ────────────────────────────────────
+  backend_2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: primetrade_backend_2
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8001"
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Backend Instance 3 ────────────────────────────────────
+  backend_3:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: primetrade_backend_3
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8002"
+    ports:
+      - "8002:8002"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Backend Instance 4 ────────────────────────────────────
+  backend_4:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: primetrade_backend_4
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8003"
+    ports:
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Backend Instance 5 ────────────────────────────────────
+  backend_5:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: primetrade_backend_5
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8004"
+    ports:
+      - "8004:8004"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ── Nginx Load Balancer ───────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: primetrade_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend_1
+      - backend_2
+      - backend_3
+      - backend_4
+      - backend_5
+      - frontend
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: primetrade_frontend
+    restart: unless-stopped
+    environment:
+      # The frontend calls /api which Nginx proxies to the backend cluster
+      VITE_API_URL: /api/v1
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Networks ──────────────────────────────────────────────
+networks:
+  app_net:
+    driver: bridge
+    name: primetrade_network
+
+# ── Volumes ───────────────────────────────────────────────
+volumes:
+  redis_data:
+    name: primetrade_redis_data
+  backend_logs:
+    name: primetrade_backend_logs
